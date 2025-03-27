@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package modelgateway;
+
+// 请求处理接口
+message ModelRequest {
+  string request_id = 1;
+  string query = 2;
+  map<string, string> metadata = 3;
+}
+
+message ModelResponse {
+  string request_id = 1;
+  string response = 2;
+  float complexity_score = 3;
+  string model_used = 4;
+  float cost = 5;
+}
+
+message Empty {}
+
+message ModelCapabilitiesResponse {
+  repeated string capabilities = 1;
+  repeated ModelProviderInfo providers = 2;
+}
+
+message ModelProviderInfo {
+  string provider_name = 1;
+  repeated string capabilities = 2;
+}
+
+// 复杂度评估接口
+message ComplexityEvaluationRequest {
+  string query = 1;
+  repeated string features = 2;
+}
+
+message ComplexityEvaluationResponse {
+  float complexity_score = 1;
+  repeated string complexity_factors = 2;
+}
+
+// 错误处理
+enum ErrorCode {
+  OK = 0;
+  INVALID_REQUEST = 1;
+  MODEL_UNAVAILABLE = 2;
+  COMPLEXITY_EVALUATION_FAILED = 3;
+  COST_LIMIT_EXCEEDED = 4;
+}
+
+message ErrorResponse {
+  ErrorCode code = 1;
+  string message = 2;
+}
+
+// 模型提供商接口约定
+message ModelProviderConfig {
+  string provider_name = 1;
+  float max_cost_per_query = 2;
+  int32 max_concurrent_queries = 3;
+  repeated string supported_capabilities = 4;
+}
+
+// 监控与追踪
+message QueryMetrics {
+  string request_id = 1;
+  float response_time = 2;
+  float complexity_score = 3;
+  string model_used = 4;
+  float cost = 5;
+}
+
+// 服务定义
+service ModelGatewayService {
+  // 处理查询请求
+  rpc ProcessQuery(ModelRequest) returns (ModelResponse);
+  
+  // 获取模型能力
+  rpc GetModelCapabilities(Empty) returns (ModelCapabilitiesResponse);
+  
+  // 评估查询复杂度
+  rpc EvaluateComplexity(ComplexityEvaluationRequest) returns (ComplexityEvaluationResponse);
+}
