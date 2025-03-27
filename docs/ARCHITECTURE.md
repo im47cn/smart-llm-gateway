@@ -15,7 +15,7 @@
 
 ## 2. 系统架构
 
-### 2.1 整体架构
+### 2.0 处理流程
 
 ```
 [用户请求入口] 
@@ -33,6 +33,84 @@
 [响应处理]
     ↓
 [监控与日志系统]
+```
+
+### 2.1 整体架构
+
+```mermaid
+graph TB
+    User((External User))
+
+    subgraph "Model Gateway System"
+        subgraph "API Layer"
+            GRPCServer["gRPC Server<br>Node.js gRPC"]
+            RequestProcessor["Request Processor<br>Node.js"]
+        end
+
+        subgraph "Core Services"
+            ModelGateway["Model Gateway Service<br>Node.js"]
+            RouterService["Model Router Service<br>Node.js"]
+            ComplexityEval["Complexity Evaluator<br>Node.js"]
+
+            subgraph "Model Adapters"
+                AdapterMgr["Adapter Manager<br>Node.js"]
+                OpenAIAdapter["OpenAI Adapter<br>REST"]
+                AnthropicAdapter["Anthropic Adapter<br>REST"]
+                BertAdapter["BERT Adapter<br>Local"]
+                LlamaAdapter["LLaMA Adapter<br>Local"]
+                LocalAdapter["Local Adapter<br>Node.js"]
+            end
+        end
+
+        subgraph "Monitoring System"
+            MonitorService["Monitoring Service<br>Node.js"]
+            
+            subgraph "Monitoring Components"
+                MetricsCollector["Metrics Collector<br>Node.js"]
+                AlertManager["Alert Manager<br>Node.js"]
+                HealthCheck["Health Check Service<br>Node.js"]
+            end
+        end
+
+        subgraph "Infrastructure"
+            Prometheus["Metrics Store<br>Prometheus"]
+            Grafana["Monitoring Dashboard<br>Grafana"]
+        end
+    end
+
+    subgraph "External Services"
+        OpenAI["OpenAI API<br>REST"]
+        Anthropic["Anthropic API<br>REST"]
+        LocalModels["Local Models<br>Various"]
+    end
+
+    %% Connections
+    User -->|"Makes requests"| GRPCServer
+    GRPCServer -->|"Processes"| RequestProcessor
+    RequestProcessor -->|"Routes"| ModelGateway
+    ModelGateway -->|"Evaluates"| ComplexityEval
+    ModelGateway -->|"Routes requests"| RouterService
+    RouterService -->|"Manages"| AdapterMgr
+    
+    AdapterMgr -->|"Uses"| OpenAIAdapter
+    AdapterMgr -->|"Uses"| AnthropicAdapter
+    AdapterMgr -->|"Uses"| BertAdapter
+    AdapterMgr -->|"Uses"| LlamaAdapter
+    AdapterMgr -->|"Uses"| LocalAdapter
+
+    OpenAIAdapter -->|"Calls"| OpenAI
+    AnthropicAdapter -->|"Calls"| Anthropic
+    BertAdapter -->|"Uses"| LocalModels
+    LlamaAdapter -->|"Uses"| LocalModels
+    LocalAdapter -->|"Uses"| LocalModels
+
+    ModelGateway -->|"Reports metrics"| MonitorService
+    MonitorService -->|"Collects"| MetricsCollector
+    MonitorService -->|"Manages"| AlertManager
+    MonitorService -->|"Checks"| HealthCheck
+    
+    MetricsCollector -->|"Stores metrics"| Prometheus
+    Prometheus -->|"Visualizes"| Grafana
 ```
 
 ### 2.2 组件交互流程
